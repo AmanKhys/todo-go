@@ -73,6 +73,47 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// /////////////////////////////////////////////////////////////////////////////
+func DeleteItem(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+
+	err := GetItemByID(id)
+	if err == false {
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"deleted": false, "error": "record not found"}`)
+	} else {
+		log.WithFields(log.Fields{"Id": id}).Info("Deleting TodoItem")
+		todo := &TodoItemModel{}
+		db.First(&todo, id)
+		db.Delete(&todo)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"deleted":true}`)
+	}
+}
+
+// //////////////////////////////////////////////////////////////////////////
+func GetCompletedItems(w http.ResponseWriter, r *http.Request) {
+	log.Info("Get completed todo items")
+	completedTodoItems := GetTodoItems(true)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(completedTodoItems)
+}
+
+// //////////////////////////////////////////////////////////////////////////
+func GetIncompleteItems(w http.ResponseWriter, r *http.Request) {
+	log.Info("Get completed todo items")
+	IncompleteTodoItems := GetTodoItems(false)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(IncompleteTodoItems)
+}
+
+func GetTodoItems(completed bool) interface{} {
+	var todos []TodoItemModel
+	TodoItems := db.Where("completed = ?", completed).Find(&todos).Value
+	return TodoItems
+}
+
 // ///////////////////////////////////////////////////////////////////////////
 func GetItemByID(Id int) bool {
 	todo := &TodoItemModel{}
